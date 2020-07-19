@@ -33,7 +33,6 @@ app.get('/:slug', async (req, res) => {
         const client = await pool.connect();
         let result = await client.query(`SELECT (slug, url, counter) from links WHERE slug='${slug}';`)
 
-        // TODO: find a better way to do this
         if (result.rows.length === 0) {
             res.json({
                 'error': 'invalid slug',
@@ -42,10 +41,11 @@ app.get('/:slug', async (req, res) => {
             return;
         }
 
+        // TODO: find a better way to do this
         let url = result.rows[0].row.split(',')[1];
+
         console.log('You are getting redirected to ' + url);
-        res.status(301).redirect(url);
-        // TODO: increment counter
+        res.status(301).redirect('https://'+url); 
         
         client.release();
       } catch (error) {
