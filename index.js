@@ -1,9 +1,15 @@
 require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
-
 const app = express();
 const port = process.env.PORT;
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 app.use(helmet());
 app.use(express.json());
@@ -19,23 +25,71 @@ app.get('/', (req, res) => {
     });
 });
 
+app.get('/:slug', async (req, res) => {
+    try {
+        let slug = req.params.slug
+        console.log('slug is ' + slug)
 
-/*
-const { Client } = require('pg');
-const client = new Client({
-    user: '',
-    password: '',
-    host: '',
-    port: 5432,
-    database: ''
+        const client = await pool.connect();
+        let result = await client.query(`SELECT (slug, url, counter) from links WHERE slug='${slug}';`)
+
+        // TODO: find a better way to do this
+        if (result.rows.length === 0) {
+            res.json({
+                'error': 'invalid slug',
+            });
+            // TODO: Redirect to somewhere safe
+            return;
+        }
+
+        let url = result.rows[0].row.split(',')[1];
+        console.log('You are getting redirected to ' + url);
+        res.status(301).redirect(url);
+        // TODO: increment counter
+        
+        client.release();
+      } catch (error) {
+        res.json({
+            'error': error.message,
+        });
+      }
 });
 
-;(async () => {
-    await client.connect()
-    const res = await client.query('SELECT $1::text as message', ['Hello world!'])
-    console.log(res.rows[0].message) // Hello world!
-    await client.end()
-  })();
+app.get('/create/:password/:slug/:url', async (req, res) => {
+    try {
+        let password = req.params.password
+        let slug = req.params.slug
+        let url = req.params.url
+
+        if (password !== process.env.PASSWORD) {
+            res.json({
+                'error': 'INVALID_PASSWORD',
+            });
+            return;
+        }
+
+        const client = await pool.connect();
+        let result = await client.query(`SELECT (slug, url, counter) from links WHERE slug='${slug}';`)
+        if (result !== []) {
+            res.json({
+                'error': 'This slug is not available.',
+            });
+            client.release();
+            return;
+        }
+
+        result = await client.query(`INSERT INTO links (slug, url, counter) VALUES ('${slug}', '${url}', 0) RETURNING *;`)
+
+        res.json({
+            'message': result,
+        });
+        client.release();
+      } catch (error) {
+        res.json({
+            'error': error.message,
+        });
+      }
+});
 
 
-console.log(process.env.TEST_VARIABLE);*/
+// TODO: Add a delete route
