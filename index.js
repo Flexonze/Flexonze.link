@@ -75,6 +75,8 @@ app.get('/:slug', async (req, res) => {
             return;
         }
 
+        // TODO: Increment the counter
+
         await redirectTo(res, url);
       }
        catch (error) {
@@ -108,5 +110,8 @@ app.get('/create/:password/:slug/:url', async (req, res) => {
         await displayError(res, error.message);
       }
 });
+
+// TODO: Add A delete view
+// TODO: Add a list all view
 
 process.on('unhandledRejection', error => {}); // Silencing the unhandledRejection warning. I know this isn't clean, but I think I will still be able to sleep at night
