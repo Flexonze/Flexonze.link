@@ -5,14 +5,16 @@ A url shortener that doesn't really shorten urls
 ## Register a new link
 https://Flexonze.link/create/:password/:slug/:url
 
-ˋ:passwordˋ is a secret to make sure only flexonze can use this view.
-ˋslugˋ is the (unique) keyword
-ˋurlˋ is the url to be "shortened"
+`:password` is a secret to make sure only flexonze can use this view.
+
+`slug` is the (unique) keyword
+
+`url` is the url to be "shortened"
 
 Note: 
 - Right now, slashes ('/') need to be escaped using `%2F`
 - The url must not include "http://" or "https://"
-Example: ˋgithub.com%2FFlexonzeˋ
+Example: `github.com%2FFlexonze`
 
 __Example__: `https://Flexonze.link/create/password/github/github.com%2FFlexonze`
 
