@@ -103,7 +103,6 @@ app.get('/create/:password/:slug/:url', async (req, res) => {
         
         let result = insertNew(slug, url);
 
-        res.json({'message': result});
         await redirectTo(res, url);
       }
       catch (error) {

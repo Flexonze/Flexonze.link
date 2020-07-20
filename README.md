@@ -27,6 +27,6 @@ __Example__: https://Flexonze.link/github
 
 
 
-#### Notes
+## Notes
 - This is a MVP, more functionnalities might be added in the future.
 - I acknowledge that the code is far from perfect since this has been made as a "one day project".
