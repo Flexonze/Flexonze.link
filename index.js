@@ -33,17 +33,33 @@ async function getUrlFromSlug(slug) {
 }
 
 async function insertNew(slug, url) {
-    const client = await pool.connect();
-    let result = await client.query(`INSERT INTO links (slug, url, counter) VALUES ('${slug}', '${url}', 0) RETURNING *;`);
-    client.release();
+    try {
+        const client = await pool.connect();
+        let result = await client.query(`INSERT INTO links (slug, url, counter) VALUES ('${slug}', '${url}', 0);`);
+        client.release();
     
-    if (result.rows.length === 0) {
-        return null;
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        return result.rows[0].row.split(',')[1];
+    } catch (error) {
+
+        await displayError(res, error.message);
     }
 
-    return result.rows[0].row.split(',')[1];
 }
 
+async function deleteLink(slug) {
+    try {
+        const client = await pool.connect();
+        let result = await client.query(`DELETE FROM links WHERE slug = '${slug}' RETURNING *;`);
+        client.release();
+        return 'success';
+    } catch (error) {
+        await displayError(res, error.message);
+    }
+}
 
 async function displayError(res, message) {
     await res.json({
@@ -57,11 +73,14 @@ async function redirectTo(res, url) {
     await res.status(301).redirect('https://' + url); 
 }
 
-
 // Routes
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+    const client = await pool.connect();
+    let result = await client.query(`SELECT * from links;`);
+    client.release();
     res.json({
         'message': 'Welcome to Flexonze.link - A url shortener that doesn\'t really shorten urls',
+        'Available links' : result.rows,
     });
 });
 
@@ -81,14 +100,18 @@ app.get('/:slug', async (req, res) => {
       }
        catch (error) {
         await displayError(res, error.message);
+        return null;
       }
 });
 
-app.get('/create/:password/:slug/:url', async (req, res) => {
+app.get('/create/:password/:slug/*', async (req, res) => {
     try {
         let password = req.params.password;
         let slug = req.params.slug;
-        let url = req.params.url;
+        let url = req.originalUrl;
+
+        // Now prepare to see the single greatest line of code I've ever written:
+        url = url.replace('/' + url.split('/')[1], '').replace('/' + url.split('/')[2], '').replace('/' + url.split('/')[3] + '/', '');
 
         if (password !== process.env.PASSWORD) {
             await displayError(res, 'The password is invalid.');
@@ -110,7 +133,37 @@ app.get('/create/:password/:slug/:url', async (req, res) => {
       }
 });
 
-// TODO: Add A delete view
-// TODO: Add a list all view
+app.get('/delete/:password/:slug', async (req, res) => {
+    try {
+        let password = req.params.password;
+        let slug = req.params.slug;
+        let url = req.params.url;
+
+        if (password !== process.env.PASSWORD) {
+            await displayError(res, 'The password is invalid.');
+            return;
+        }
+
+        let urlAvailability = await getUrlFromSlug(slug);
+
+        if (urlAvailability === null) {
+            await displayError(res, 'This slug does not exist');
+            return;
+        }
+        
+        let result = await deleteLink(slug);
+
+        if (result !== 'success') {
+            await displayError(res, 'Could not delete this slug');
+        }
+
+        res.json({
+            'message': `The link has been deleted succesfully (${slug})`,
+        });
+      }
+      catch (error) {
+        await displayError(res, error.message);
+      }
+});
 
 process.on('unhandledRejection', error => {}); // Silencing the unhandledRejection warning. I know this isn't clean, but I think I will still be able to sleep at night
