@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
+const pretty = require('express-prettify');
 const app = express();
 const port = process.env.PORT;
 const { Pool } = require('pg');
@@ -17,7 +18,7 @@ app.use(express.json());
 app.listen(port, () => {
     console.log('Listening on port ' + port);
 });
-
+app.set('json spaces', 2);
 
 // Functions
 async function getUrlFromSlug(slug) {
@@ -61,6 +62,17 @@ async function deleteLink(slug) {
     }
 }
 
+async function incrementCounter(slug) {
+    try {
+        const client = await pool.connect();
+        let result = await client.query(`UPDATE links SET counter = counter + 1 WHERE slug = '${slug}';`);
+        client.release();
+        return 'success';
+    } catch (error) {
+        await displayError(res, error.message);
+    }
+}
+
 async function displayError(res, message) {
     await res.json({
         'error': message,
@@ -78,8 +90,9 @@ app.get('/', async (req, res) => {
     const client = await pool.connect();
     let result = await client.query(`SELECT * from links;`);
     client.release();
+    res.header("Content-Type",'application/json');
     res.json({
-        'message': 'Welcome to Flexonze.link - A url shortener that doesn\'t really shorten urls',
+        'message': 'Welcome to Flexonze.link - A personnal url shortener that doesn\'t really shortens urls',
         'Available links' : result.rows,
     });
 });
@@ -94,7 +107,7 @@ app.get('/:slug', async (req, res) => {
             return;
         }
 
-        // TODO: Increment the counter
+        await incrementCounter(slug);
 
         await redirectTo(res, url);
       }
