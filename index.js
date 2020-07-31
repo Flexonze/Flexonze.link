@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
-const pretty = require('express-prettify');
 const app = express();
 const port = process.env.PORT;
 const { Pool } = require('pg');
@@ -90,7 +89,6 @@ app.get('/', async (req, res) => {
     const client = await pool.connect();
     let result = await client.query(`SELECT * from links;`);
     client.release();
-    res.header("Content-Type",'application/json');
     res.json({
         'message': 'Welcome to Flexonze.link - A personnal url shortener that doesn\'t really shortens urls',
         'Available links' : result.rows,
